@@ -5,8 +5,10 @@
     <h1>Your Groups</h1>
     <ul>
         {% for group in groups %}
-            <li>{{ group }}</li>
+            <li>{{ group.name }}</li>
         {% endfor %}
     </ul>
+    <p><a href="/create-group">+ Create New Group</a></p>
+    <p><a href="/logout">Logout</a></p>
 </body>
 </html>
