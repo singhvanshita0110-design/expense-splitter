@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><title>Add Expense</title></head>
+<body>
+    <h1>Add Expense to {{ group.name }}</h1>
+
+    <form method="POST">
+        <label>Description:</label><br>
+        <input type="text" name="description" required><br><br>
+
+        <label>Amount:</label><br>
+        <input type="number" step="0.01" name="amount" required><br><br>
+
+        <label>Paid by:</label><br>
+        <select name="paid_by" required>
+            {% for member in members %}
+                <option value="{{ member.id }}">{{ member.username }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Add Expense</button>
+    </form>
+
+    <p><a href="/group/{{ group.id }}">Back to Group</a></p>
+</body>
+</html>

@@ -5,7 +5,7 @@
     <h1>Your Groups</h1>
     <ul>
         {% for group in groups %}
-            <li>{{ group.name }}</li>
+            <li><a href="/group/{{ group.id }}">{{ group.name }}</a></li>
         {% endfor %}
     </ul>
     <p><a href="/create-group">+ Create New Group</a></p>

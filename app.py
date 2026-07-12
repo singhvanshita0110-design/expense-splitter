@@ -116,6 +116,87 @@ def create_group():
         return redirect(url_for('dashboard'))
 
     return render_template('create_group.html')
+@app.route('/group/<int:group_id>')
+@login_required
+def view_group(group_id):
+    group = Group.query.get_or_404(group_id)
+    memberships = GroupMember.query.filter_by(group_id=group_id).all()
+    members = [User.query.get(m.user_id) for m in memberships]
+
+    # Calculate net balance for each member
+    balances = {}
+    for member in members:
+        balances[member.id] = 0.0
+
+    expenses = Expense.query.filter_by(group_id=group_id).all()
+    for expense in expenses:
+        # Whoever paid gets credited the full amount
+        balances[expense.paid_by] += expense.amount
+
+        # Everyone with a split for this expense gets debited their share
+        splits = ExpenseSplit.query.filter_by(expense_id=expense.id).all()
+        for split in splits:
+            balances[split.user_id] -= split.share_amount
+
+    # Attach readable names to balances for the template
+    balance_list = []
+    for member in members:
+        balance_list.append({
+            'username': member.username,
+            'amount': round(balances[member.id], 2)
+        })
+
+    return render_template('group.html', group=group, members=members, balances=balance_list)
+
+@app.route('/group/<int:group_id>/add-member', methods=['POST'])
+@login_required
+def add_member(group_id):
+    username = request.form['username']
+    user = User.query.filter_by(username=username).first()
+
+    if user:
+        existing = GroupMember.query.filter_by(group_id=group_id, user_id=user.id).first()
+        if not existing:
+            new_member = GroupMember(group_id=group_id, user_id=user.id)
+            db.session.add(new_member)
+            db.session.commit()
+
+    return redirect(url_for('view_group', group_id=group_id))
+@app.route('/group/<int:group_id>/add-expense', methods=['GET', 'POST'])
+@login_required
+def add_expense(group_id):
+    group = Group.query.get_or_404(group_id)
+    memberships = GroupMember.query.filter_by(group_id=group_id).all()
+    members = [User.query.get(m.user_id) for m in memberships]
+
+    if request.method == 'POST':
+        description = request.form['description']
+        amount = float(request.form['amount'])
+        paid_by = int(request.form['paid_by'])
+
+        new_expense = Expense(
+            group_id=group_id,
+            paid_by=paid_by,
+            amount=amount,
+            description=description
+        )
+        db.session.add(new_expense)
+        db.session.commit()
+
+        # Split equally among all members
+        share = amount / len(members)
+        for member in members:
+            split = ExpenseSplit(
+                expense_id=new_expense.id,
+                user_id=member.id,
+                share_amount=share
+            )
+            db.session.add(split)
+        db.session.commit()
+
+        return redirect(url_for('view_group', group_id=group_id))
+
+    return render_template('add_expense.html', group=group, members=members)
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
