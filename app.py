@@ -246,7 +246,8 @@ def add_expense(group_id):
         return redirect(url_for('view_group', group_id=group_id))
 
     return render_template('add_expense.html', group=group, members=members)
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, port=5001)
